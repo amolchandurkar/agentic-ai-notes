@@ -1,0 +1,157 @@
+# Agentic AI flow in mermaid
+::: mermaid
+flowchart TD
+    %% ─────────────────────────────────────────
+    %% USER LAYER
+    %% ─────────────────────────────────────────
+    U([👤 User Input / Query]) --> PERC
+
+    %% ─────────────────────────────────────────
+    %% PERCEPTION LAYER
+    %% ─────────────────────────────────────────
+    subgraph PERCEPTION ["🔍 PERCEPTION LAYER"]
+        PERC[Parse & Understand Input\nText / Image / Audio / Data]
+        PERC --> INTENT[Intent & Entity Extraction]
+        INTENT --> CONTEXT[Context Assembly]
+    end
+
+    %% ─────────────────────────────────────────
+    %% MEMORY LAYER
+    %% ─────────────────────────────────────────
+    CONTEXT --> MEM
+
+    subgraph MEMORY ["🧠 MEMORY LAYER"]
+        MEM{Memory Lookup}
+        MEM --> STM["📋 STM — Short-Term Memory\nCurrent conversation history\nIn-context window state"]
+        MEM --> LTM["🗄️ LTM — Long-Term Memory\nVector DB · Knowledge Base\nUser Profiles · Past Sessions"]
+        STM & LTM --> MEM_MERGE[Merged Context\nRelevant Facts + History]
+    end
+
+    %% ─────────────────────────────────────────
+    %% RAG PIPELINE
+    %% ─────────────────────────────────────────
+    MEM_MERGE --> RAG
+
+    subgraph RAG_PIPE ["📚 RAG PIPELINE"]
+        RAG[Query Embedding\nDense / Sparse / Hybrid]
+        RAG --> RETRIEVE[Retrieve Top-K Chunks\nfrom Vector Store / BM25]
+        RETRIEVE --> RERANK[Re-rank & Filter\nCross-encoder / MMR]
+        RERANK --> AUGMENT[Augment Prompt\nwith Retrieved Context]
+    end
+
+    %% ─────────────────────────────────────────
+    %% GOAL & PLANNING
+    %% ─────────────────────────────────────────
+    AUGMENT --> GOAL
+
+    subgraph GOAL_PLAN ["🎯 GOAL & PLANNING"]
+        GOAL[Goal Identification\nWhat does the agent need to achieve?]
+        GOAL --> PLAN[Task Decomposition\nChain-of-Thought / Tree-of-Thought\nReAct / Plan-and-Execute]
+        PLAN --> SUBTASKS[["Subtask List\n① ... ② ... ③ ..."]]
+    end
+
+    %% ─────────────────────────────────────────
+    %% LLM REASONING CORE
+    %% ─────────────────────────────────────────
+    SUBTASKS --> LLM_CORE
+
+    subgraph LLM_REASON ["🤖 LLM — REASONING CORE"]
+        LLM_CORE[Large Language Model\nGPT-4 / Claude / Gemini / LLaMA]
+        LLM_CORE --> REASON[Reasoning Engine\nDeductive · Inductive\nAbductive · Analogical]
+        REASON --> DECIDE{Decision Gate\nEnough info?}
+    end
+
+    %% ─────────────────────────────────────────
+    %% ACTION / TOOL USE
+    %% ─────────────────────────────────────────
+    DECIDE -->|No — needs external data| TOOLS
+
+    subgraph TOOL_LAYER ["⚙️ ACTION & TOOLS LAYER"]
+        TOOLS[Tool Selector\nFunction Calling / Tool Use API]
+
+        subgraph MCP_BOX ["🔌 MCP — Model Context Protocol"]
+            MCP_SERVER[MCP Server\nStandardised Tool Interface]
+            MCP_SERVER --> T1[🔎 Web Search]
+            MCP_SERVER --> T2[💾 Database Query]
+            MCP_SERVER --> T3[📡 REST API Call]
+            MCP_SERVER --> T4[🐍 Code Executor]
+            MCP_SERVER --> T5[📁 File System]
+            MCP_SERVER --> T6[🔗 External Services\nSlack · GitHub · Calendar …]
+        end
+
+        TOOLS --> MCP_SERVER
+        T1 & T2 & T3 & T4 & T5 & T6 --> TOOL_RESULT[Tool Result / Observation]
+    end
+
+    TOOL_RESULT --> OBSERVE
+
+    %% ─────────────────────────────────────────
+    %% OBSERVE → REFLECT LOOP  (ReAct style)
+    %% ─────────────────────────────────────────
+    subgraph REFLECT ["🔄 OBSERVE → REFLECT (ReAct Loop)"]
+        OBSERVE[Observation Ingestion\nParse tool output]
+        OBSERVE --> UPDATE_STM[Update STM\nAppend new facts to context]
+        UPDATE_STM --> REFLECT_NODE[Reflect & Re-plan\nIs goal satisfied?]
+        REFLECT_NODE -->|Loop — more steps needed| SUBTASKS
+    end
+
+    DECIDE -->|Yes — sufficient info| SYNTH
+
+    %% ─────────────────────────────────────────
+    %% RESPONSE SYNTHESIS
+    %% ─────────────────────────────────────────
+    REFLECT_NODE -->|Done| SYNTH
+
+    subgraph SYNTHESIS ["✍️ RESPONSE SYNTHESIS"]
+        SYNTH[Synthesise Final Answer\nCombine reasoning + tool results\n+ retrieved context]
+        SYNTH --> VALIDATE[Self-Critique / Guardrails\nHallucination check · Safety filter\nFact grounding]
+        VALIDATE -->|Needs revision| SYNTH
+        VALIDATE -->|Approved| FORMAT[Format Response\nMarkdown · JSON · Table · Code]
+    end
+
+    %% ─────────────────────────────────────────
+    %% MEMORY UPDATE
+    %% ─────────────────────────────────────────
+    FORMAT --> MEM_WRITE
+
+    subgraph MEM_UPDATE ["💾 MEMORY UPDATE"]
+        MEM_WRITE[Write to Memory]
+        MEM_WRITE --> WRITE_STM[Update STM\nAppend turn to conversation]
+        MEM_WRITE --> WRITE_LTM[Update LTM\nPersist learnings / summaries\nto Vector DB]
+    end
+
+    %% ─────────────────────────────────────────
+    %% FINAL OUTPUT
+    %% ─────────────────────────────────────────
+    WRITE_STM & WRITE_LTM --> RESP([✅ Final Answer Delivered to User])
+
+    %% ─────────────────────────────────────────
+    %% FEEDBACK LOOP
+    %% ─────────────────────────────────────────
+    RESP -->|👍 👎 User Feedback| FB[Feedback Captured]
+    FB --> WRITE_LTM
+
+    %% ─────────────────────────────────────────
+    %% STYLES
+    %% ─────────────────────────────────────────
+    classDef userNode   fill:#4f46e5,color:#fff,stroke:#3730a3,rx:12
+    classDef llmNode    fill:#0891b2,color:#fff,stroke:#0e7490
+    classDef memNode    fill:#7c3aed,color:#fff,stroke:#6d28d9
+    classDef ragNode    fill:#059669,color:#fff,stroke:#047857
+    classDef toolNode   fill:#d97706,color:#fff,stroke:#b45309
+    classDef mcpNode    fill:#ea580c,color:#fff,stroke:#c2410c
+    classDef goalNode   fill:#db2777,color:#fff,stroke:#be185d
+    classDef synthNode  fill:#0284c7,color:#fff,stroke:#0369a1
+    classDef feedNode   fill:#64748b,color:#fff,stroke:#475569
+
+    class U,RESP userNode
+    class LLM_CORE,REASON,DECIDE llmNode
+    class MEM,STM,LTM,MEM_MERGE,MEM_WRITE,WRITE_STM,WRITE_LTM,UPDATE_STM memNode
+    class RAG,RETRIEVE,RERANK,AUGMENT ragNode
+    class TOOLS,TOOL_RESULT,T1,T2,T3,T4,T5,T6 toolNode
+    class MCP_SERVER mcpNode
+    class GOAL,PLAN,SUBTASKS goalNode
+    class SYNTH,VALIDATE,FORMAT,OBSERVE,REFLECT_NODE synthNode
+    class FB feedNode
+
+:::
